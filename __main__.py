@@ -74,8 +74,8 @@ class State:
 
 class Node:
     nodeCount = 0
-
-    def __init__(self, p, a, c, s):
+                        # ADDED PARAMS g, h HERE REPRESENTING HEURISTICS
+    def __init__(self, p, a, c, s, g):
 
         # keep track of how many nodes were created
         self.__class__.nodeCount += 1
@@ -85,6 +85,9 @@ class Node:
         self.cost = c
         self.action = a
         self.state = s
+        self.g_v = g
+        # self.h_v = h
+        # self.f = g + h
 
     # test equivalence Should be state
 
@@ -100,8 +103,28 @@ class Node:
 
 
 # creates and returns a new node which would be child of current node n being passed to the function
-def childNode(n, action, problem):
-    return Node(n, action, n.cost + 1, problem.apply(action, State(n.state)))
+def childNode(n, action, problem, g):
+    return Node(n, action, n.cost + 1, problem.apply(action, State(n.state)), g + 1)
+
+goal_position = {}
+idx = 0
+for i in range(3):
+    for j in range(3):
+        goal_position[(i, j)] = idx
+        idx += 1
+
+def calculate_h(state_tuple):
+    # arg should be passed as state.toTuple()
+    # goal_position = { (0, 0): 0, (0, 1): 1, (0, 2): 2, (1, 0): 3 ... (3, 3): 8 }
+    # calculating H by how many numbers are not in the right spot
+    # calculate G = number of nodes moved from initial state (generally going to be +1 for each successor node)
+    h = 0
+    for i in range(3):
+        for j in range(3):
+            if state_tuple[i][j] != goal_position[(i, j)]:
+                h += 1
+    return h
+
 
 
 # problem
@@ -192,8 +215,34 @@ def solution(node):
 
 class Searches:
 
+    def A_star(self, problem):
+        root = Node(None, None, 0, problem.initialState, 0)
+        path = []
+        node_path = []
+        path.append(root.state)
+        node_path.append(root)
+        while True:
+            n = node_path[-1]
+            # print(n.state)
+            if problem.goalTest(n.state):
+                return solution(n)
+            appl = problem.applicable(n.state)
+            children = {}
+            for i in range(len(appl)):
+                child = childNode(n, appl[i], problem, n.g_v)
+                children[child] = calculate_h(child.state.toTuple())
+            minimum = 1000
+            min_child = None
+            for c_node in children:
+                if children[c_node] + c_node.g_v < minimum:
+                    minimum = children[c_node]
+                    min_child = c_node
+            # print(min_child.state)
+            path.append(min_child.state)
+            node_path.append(min_child)
+
     def BFS(self, problem):
-        root = Node(None, None, 0, problem.initialState)
+        root = Node(None, None, 0, problem.initialState, 0)
         queue = []
         visited = []
         visited.append((root.state))
@@ -205,7 +254,7 @@ class Searches:
             else:
                 appl = problem.applicable(n.state)
                 for i in range(len(appl)):
-                    p = childNode(n, appl[i], problem)
+                    p = childNode(n, appl[i], problem, 0)
                     if p.state not in visited:
                         visited.append(p.state)
                         queue.append(p)
@@ -213,7 +262,7 @@ class Searches:
         # WRITE YOUR CODE HERE
 
     def DFS(self, problem):
-        root = Node(None, None, 0, problem.initialState)
+        root = Node(None, None, 0, problem.initialState, 0)
         stack = []
         stateStack = set(())
         visited = set(())
@@ -227,7 +276,7 @@ class Searches:
                 return solution(n)
             appl = problem.applicable(n.state)
             for i in range(len(appl)):
-                p = childNode(n, appl[i], problem)
+                p = childNode(n, appl[i], problem, 0)
                 if problem.goalTest(p.state):
                     return solution(p)
                 if not (str(p.state) in visited or str(p.state) in stateStack):
@@ -246,6 +295,8 @@ if __name__ == '__main__':
 
     p.goalState = State(s)
 
+    print('FORMAT: ', p.goalState.toTuple())
+
     p.apply('R', s)
     p.apply('R', s)
     p.apply('D', s)
@@ -255,6 +306,28 @@ if __name__ == '__main__':
     p.initialState = State(s)
 
     print("Initial State \n", p.initialState)
+
+    print('=== A_star  ===')
+    startTime = time.clock()
+    res = search.A_star(p)
+    print(res)
+    print("Time " + str(time.clock() - startTime))
+    print("Explored Nodes: " + str(Node.nodeCount))
+
+    print("Generating Random Position")
+    si = State(s)
+    applyRndMoves(15, si, p)
+    p.initialState = si
+    print(si)
+
+    startTime = time.clock()
+
+    print('=== A_star  ===')
+    startTime = time.clock()
+    res = search.A_star(p)
+    print(res)
+    print("Time " + str(time.clock() - startTime))
+    print("Explored Nodes: " + str(Node.nodeCount))
 
 ### Uncommnet for testing BFS solution
 
