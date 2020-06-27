@@ -3,6 +3,7 @@ Nils Napp
 Sliding Probelm for AI-Class
 '''
 
+from queue import PriorityQueue
 import random
 import time
 
@@ -90,7 +91,12 @@ class Node:
         # self.f = g + h
 
     # test equivalence Should be state
-
+    
+    # Overload less than operator in order to add Node objects to priority queue properly
+    def __lt__(self, other):
+        # self < other
+        return calculate_h(self.state.toTuple()) < calculate_h(other.state.toTuple())
+    
     def __str__(self):
         rstr = 'NodeID: ' + str(self.nodeID) + '\n'
         if self.parent != None:
@@ -240,6 +246,34 @@ class Searches:
             # print(min_child.state)
             path.append(min_child.state)
             node_path.append(min_child)
+            
+    def greedy(self, problem):
+        # Create new Node with initial state, empty priority queue and empty set for explored states
+        node = Node(None, None, 0, problem.initialState, 0)
+        frontier = PriorityQueue()
+        explored = set()
+        
+        # Add root node to priority queue
+        frontier.put(node)
+
+        # While priority queue is not empty
+        while frontier:
+            
+            # Get highest priority node from the priority queue (node with the smallest heuristic)
+            node = frontier.get()
+            
+            # If current state is the goal state, return path from initial state
+            if problem.goalTest(node.state):
+                return solution(node)
+            
+            # Else if current state has not been explored, add it to the set of explored states
+            elif node.state.toTuple() not in explored:
+                explored.add(node.state.toTuple())
+                
+                # For each possible action from the current state, create a new child node and add it to the priority queue
+                for action in problem.applicable(node.state):
+                    child = childNode(node, action, problem, node.g_v)
+                    frontier.put(child)
 
     def BFS(self, problem):
         root = Node(None, None, 0, problem.initialState, 0)
