@@ -230,6 +230,8 @@ class Searches:
             children = {}
             for i in range(len(appl)):
                 child = childNode(n, appl[i], problem, n.g_v)
+                if problem.goalTest(child.state):
+                    return solution(child)
                 children[child] = calculate_h(child.state.toTuple())
             minimum = 1000
             min_child = None
